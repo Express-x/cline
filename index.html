@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Engine Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1e1e1e;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #tab-bar {
+            height: 40px;
+            background: #252526;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+        }
+
+        .tab-group {
+            position: relative;
+            height: 100%;
+        }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            height: 100%;
+            cursor: pointer;
+            border-right: 1px solid #3c3c3c;
+            user-select: none;
+            gap: 8px;
+        }
+
+        .tab.active {
+            background: #1e1e1e;
+            border-bottom: 2px solid #007acc;
+        }
+
+        .tab i {
+            font-size: 14px;
+        }
+
+        .feature-button {
+            padding: 0 8px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            border-left: 1px solid #3c3c3c;
+        }
+
+        .feature-button:hover {
+            background: #2d2d2d;
+        }
+
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #252526;
+            border: 1px solid #3c3c3c;
+            border-top: none;
+            min-width: 200px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .dropdown.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dropdown-item:hover {
+            background: #2d2d2d;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #3c3c3c;
+            margin: 4px 0;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+        }
+
+        #side-panel {
+            width: 250px;
+            background: #252526;
+            border-right: 1px solid #3c3c3c;
+            padding: 1rem;
+        }
+
+        #editor-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .editor {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .editor.active {
+            display: block;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #blueprint-editor {
+            background: #1e1e1e;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-section {
+            margin-bottom: 1rem;
+        }
+
+        .panel-section h2 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #cccccc;
+        }
+
+        .panel-item {
+            padding: 0.5rem;
+            background: #2d2d2d;
+            border: 1px solid #3c3c3c;
+            margin-bottom: 0.25rem;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .panel-item:hover {
+            background: #3c3c3c;
+        }
+
+        #blueprint-grid {
+            width: 100%;
+            height: 100%;
+            background-size: 20px 20px;
+            background-image:
+                linear-gradient(to right, #282828 1px, transparent 1px),
+                linear-gradient(to bottom, #282828 1px, transparent 1px);
+        }
+
+        .node {
+            position: absolute;
+            background: #2d2d2d;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            min-width: 150px;
+            padding: 8px;
+            cursor: move;
+        }
+
+        .node-header {
+            padding-bottom: 8px;
+            border-bottom: 1px solid #3c3c3c;
+            margin-bottom: 8px;
+        }
+
+        .node-pins {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .pin {
+            display: flex;
+            align-items: center;
+            height: 20px;
+        }
+
+        .pin-input {
+            padding-left: 12px;
+        }
+
+        .pin-output {
+            padding-right: 12px;
+            justify-content: flex-end;
+        }
+
+        .pin-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #007acc;
+            margin: 0 4px;
+        }
+
+        .scene-panel {
+            display: none;
+        }
+
+        .scene-panel.active {
+            display: block;
+        }
+
+        .blueprint-panel {
+            display: none;
+        }
+
+        .blueprint-panel.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="tab-bar">
+        <div class="tab-group">
+            <div class="tab active" data-editor="scene">
+                <i class="fas fa-cube"></i>
+                Scene Editor
+                <div class="feature-button">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+            <div class="dropdown" id="scene-dropdown">
+                <div class="dropdown-item">
+                    <i class="fas fa-camera"></i>
+                    Add Camera
+                </div>
+                <div class="dropdown-item">
+                    <i class="fas fa-lightbulb"></i>
+                    Add Light
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item">
+                    <i class="fas fa-cube"></i>
+                    Add Mesh
+                </div>
+                <div class="dropdown-item">
+                    <i class="fas fa-sphere"></i>
+                    Add Sphere
+                </div>
+                <div class="dropdown-item">
+                    <i class="fas fa-cube"></i>
+                    Add Cube
+                </div>
+            </div>
+        </div>
+        <div class="tab-group">
+            <div class="tab" data-editor="blueprint">
+                <i class="fas fa-project-diagram"></i>
+                Blueprint Editor
+                <div class="feature-button">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+            <div class="dropdown" id="blueprint-dropdown">
+                <div class="dropdown-item">
+                    <i class="fas fa-bolt"></i>
+                    Add Event
+                </div>
+                <div class="dropdown-item">
+                    <i class="fas fa-code"></i>
+                    Add Function
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item">
+                    <i class="fas fa-calculator"></i>
+                    Add Math Node
+                </div>
+                <div class="dropdown-item">
+                    <i class="fas fa-random"></i>
+                    Add Flow Control
+                </div>
+                <div class="dropdown-item">
+                    <i class="fas fa-database"></i>
+                    Add Variable
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-container">
+        <div id="side-panel">
+            <div class="scene-panel active">
+                <div class="panel-section">
+                    <h2>Scene Objects</h2>
+                    <div class="panel-item">Camera</div>
+                    <div class="panel-item">Light</div>
+                    <div class="panel-item">Mesh</div>
+                </div>
+                <div class="panel-section">
+                    <h2>Properties</h2>
+                    <div class="panel-item">Transform</div>
+                    <div class="panel-item">Material</div>
+                </div>
+            </div>
+            <div class="blueprint-panel">
+                <div class="panel-section">
+                    <h2>Node Properties</h2>
+                    <div class="panel-item">Input Types</div>
+                    <div class="panel-item">Output Types</div>
+                    <div class="panel-item">Node Settings</div>
+                </div>
+            </div>
+        </div>
+        <div id="editor-container">
+            <div class="editor active" id="scene-editor">
+                <canvas id="canvas"></canvas>
+            </div>
+            <div class="editor" id="blueprint-editor">
+                <div id="blueprint-grid"></div>
+            </div>
+        </div>
+    </div>
+    <script src="engine.js"></script>
+</body>
+</html>
